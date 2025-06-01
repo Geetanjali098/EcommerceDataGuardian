@@ -1,7 +1,7 @@
 
 # 📊 Data Quality
 
-**Data Quality** is a modern web application designed to assess and manage the integrity of data within e-commerce datasets. Built using a powerful frontend stack, this app ensures smooth performance, responsive design, and secure authentication.
+**Data Quality** is a modern web application designed to access and manage the integrity of data within e-commerce datasets. Built using a powerful frontend stack, this app ensures smooth performance, responsive design, and secure authentication.
 
 ## 🚀 Features
 
