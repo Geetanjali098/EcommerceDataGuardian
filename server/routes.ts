@@ -1,81 +1,67 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { MemStorage, storage } from "./storage";
-import session from "express-session";
-import MemoryStore from "memorystore";
+import { storage } from "./storage";
 import { isAuthenticated, isAdmin, isAnalyst, AuthenticatedRequest } from "./middleware/auth";
 import { z } from "zod";
 import { insertUserSchema } from "@shared/schema";
 import type { User } from "@shared/schema";
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
+import crypto from 'crypto';
+import admin from "firebase-admin";
+
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
-    // Initialize storage with seed data
     await storage.initializeWithSeedData();
   } catch (error) {
     console.error("Failed to initialize storage:", error);
     throw new Error("Storage initialization failed");
   }
 
-  // Set up session
-  const MemoryStoreSession = MemoryStore(session);
-  app.use(
-    session({
-      secret: process.env.SESSION_SECRET || "e-commerce-data-quality-dashboard-secret",
-      resave: false,
-      saveUninitialized: false,
-      cookie: { 
-        secure: process.env.NODE_ENV === "production", 
-        maxAge: 86400000, // 24 hours
-        httpOnly: true // Added for security
-      },
-      store: new MemoryStoreSession({
-        checkPeriod: 86400000, // prune expired entries every 24h
-      }),
-    })
-  );
-
-  // Authentication routes
+ 
+  
+  // 🔐 JWT Login Route
   app.post("/api/auth/login", async (req, res) => {
     const { username, password } = req.body;
-    
+
     if (!username || !password) {
       return res.status(400).json({ message: "Username and password are required" });
     }
 
     try {
       const user = await storage.getUserByUsername(username);
-      
-      // SECURITY NOTE: In production, always use bcrypt or similar to compare hashed passwords
+
       if (!user || user.password !== password) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // Store user in session
-      req.session.userId = user.id;
+      const accessToken = jwt.sign(
+        { id: user.id, username: user.username, role: user.role },
+        process.env.JWT_SECRET!,
+        { expiresIn: '15m' }
+      );
 
-      // SECURITY NOTE: In production, use proper JWT tokens with expiration
-      const payload = {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-             };
+      const refreshToken = crypto.randomBytes(40).toString('hex');
+      await storage.saveRefreshToken(user.id, refreshToken);
 
-const secret = process.env.JWT_SECRET || '52f312bc46471fc4d501654e5b3757ee97899f05df067fbb1dd8eb77f977d1465cead8140bfadc58cce1256b77ae0ea08ab63a63d109a8a80b425f76ffeb38d8';
-const token = jwt.sign(payload, secret, { expiresIn: '1h' });
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
 
-// Set token in session for later use
       return res.json({
-        token,
+        token: accessToken,
+        message: "Login successful",
         user: {
           id: user.id,
           username: user.username,
           role: user.role,
           name: user.name,
           email: user.email,
-          avatarUrl: user.avatarUrl
-        }
+          avatarUrl: user.avatarUrl,
+        },
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -83,39 +69,57 @@ const token = jwt.sign(payload, secret, { expiresIn: '1h' });
     }
   });
 
-  // (Moved out from login handler)
-  app.get("/api/users", isAuthenticated, isAdmin, async (req, res) => {
-    try {
-      const allUsers = await storage.getAllUsers();
-      const currentUserId = await storage.getCurrentUserId();
+  // 🔐 Google Sign-In Route
+  app.post("/api/auth/google", async (req, res) => {
+    const { token, role } = req.body;
 
-      const filteredUsers = allUsers
-        .filter((user) => user.id !== currentUserId)
-        .map((user) => ({
-          id: user.id,
-          username: user.username,
-          role: user.role,
-          name: user.name,
-          email: user.email,
-          avatarUrl: user.avatarUrl
-        }));
-      return res.json(filteredUsers);
+    if (!token || !role) {
+      return res.status(400).json({ message: "Token and role are required" });
+    }
+
+    try {
+      const decoded = await admin.auth().verifyIdToken(token);
+
+      const userInfo = {
+        id: Number(decoded.uid),
+        name: decoded.name || "",
+        email: decoded.email || "",
+        avatarUrl: decoded.picture || "",
+        role,
+      };
+
+      await storage.setCurrentUser({
+        id: Number(decoded.uid),
+        username: userInfo.email,
+        name: userInfo.name,
+        email: userInfo.email,
+        role: userInfo.role,
+        avatarUrl: userInfo.avatarUrl,
+        password: "google-oauth",
+      });
+
+      const jwtToken = jwt.sign(
+        { id: userInfo.id, username: userInfo.email, role: userInfo.role },
+        process.env.JWT_SECRET!,
+        { expiresIn: "1h" }
+      );
+
+      return res.json({
+        token: jwtToken,
+        user: userInfo,
+      });
     } catch (error) {
-      console.error("Get users error:", error);
-      return res.status(500).json({ message: "Internal server error" });
+      console.error("Google Sign-In error:", error);
+      return res.status(401).json({ message: "Invalid Google token" });
     }
   });
 
+  // 🔐 JWT Logout Route
   app.post("/api/auth/logout", (req, res) => {
-    req.session.destroy((err) => {
-      if (err) {
-        console.error("Logout error:", err);
-        return res.status(500).json({ message: "Failed to logout" });
-      }
-      return res.json({ message: "Logged out successfully" });
-    });
+    return res.json({ message: "Logged out successfully (client-side)" });
   });
 
+  // 🔐 Authenticated User Info
   app.get("/api/auth/me", isAuthenticated, async (req: AuthenticatedRequest, res) => {
     try {
       if (!req.user) {
@@ -126,14 +130,14 @@ const token = jwt.sign(payload, secret, { expiresIn: '1h' });
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       return res.json({
         id: user.id,
         username: user.username,
         role: user.role,
         name: user.name,
         email: user.email,
-        avatarUrl: user.avatarUrl
+        avatarUrl: user.avatarUrl,
       });
     } catch (error) {
       console.error("Get current user error:", error);
@@ -141,22 +145,22 @@ const token = jwt.sign(payload, secret, { expiresIn: '1h' });
     }
   });
 
-  // User management routes (admin only)
+  // 👥 Admin: View Users
   app.get("/api/users", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
-      
+
       const filteredUsers = users
         .filter((user): user is User => user !== undefined)
-        .map(user => ({
+        .map((user) => ({
           id: user.id,
           username: user.username,
           role: user.role,
           name: user.name,
           email: user.email,
-          avatarUrl: user.avatarUrl
+          avatarUrl: user.avatarUrl,
         }));
-      
+
       return res.json(filteredUsers);
     } catch (error) {
       console.error("Get users error:", error);
@@ -164,24 +168,25 @@ const token = jwt.sign(payload, secret, { expiresIn: '1h' });
     }
   });
 
+  // 👥 Admin: Create User
   app.post("/api/users", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const validatedUser = insertUserSchema.parse(req.body);
       const user = await storage.createUser(validatedUser);
-      
+
       return res.status(201).json({
         id: user.id,
         username: user.username,
         role: user.role,
         name: user.name,
         email: user.email,
-        avatarUrl: user.avatarUrl
+        avatarUrl: user.avatarUrl,
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Invalid user data", 
-          errors: error.errors 
+        return res.status(400).json({
+          message: "Invalid user data",
+          errors: error.errors,
         });
       }
       console.error("Create user error:", error);
@@ -189,7 +194,7 @@ const token = jwt.sign(payload, secret, { expiresIn: '1h' });
     }
   });
 
-  // Dashboard data routes (similar improvements made to all routes)
+  // 📊 Dashboard Route Example
   app.get("/api/dashboard/quality-metrics", isAuthenticated, async (req, res) => {
     try {
       const metrics = await storage.getLatestQualityMetrics();
@@ -203,9 +208,7 @@ const token = jwt.sign(payload, secret, { expiresIn: '1h' });
     }
   });
 
-  // [Other dashboard routes follow the same pattern...]
-
-  // Export functionality
+  // 📦 Export CSV
   app.get("/api/export/report", isAuthenticated, async (req, res) => {
     try {
       const [metrics, pipelines, issues, sources, trendData] = await Promise.all([
@@ -213,30 +216,24 @@ const token = jwt.sign(payload, secret, { expiresIn: '1h' });
         storage.getAllDataPipelines(),
         storage.getAllDataIssues(),
         storage.getAllDataSources(),
-        storage.getAllQualityTrendData()
+        storage.getAllQualityTrendData(),
       ]);
 
       if (!metrics || !pipelines || !issues || !sources || !trendData) {
         return res.status(404).json({ message: "Data not available for export" });
       }
 
-      // Build CSV content
       let csv = "Data Quality Dashboard Export\n\n";
-      
-      // Add quality metrics
       csv += "QUALITY METRICS\n";
       csv += "Metric,Value,Change\n";
       csv += `Overall Quality,${metrics.overallScore}%,${metrics.trendChange}%\n`;
       csv += `Data Freshness,${metrics.dataFreshness}%,${metrics.freshnessChange}%\n`;
       csv += `Data Completeness,${metrics.dataCompleteness}%,${metrics.completenessChange}%\n`;
       csv += `Data Accuracy,${metrics.dataAccuracy}%,${metrics.accuracyChange}%\n\n`;
-      
-      // [Rest of CSV generation...]
 
-      // Set headers for CSV download
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=data-quality-report.csv');
-      
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", "attachment; filename=data-quality-report.csv");
+
       return res.send(csv);
     } catch (error) {
       console.error("Export report error:", error);
@@ -247,3 +244,4 @@ const token = jwt.sign(payload, secret, { expiresIn: '1h' });
   const httpServer = createServer(app);
   return httpServer;
 }
+

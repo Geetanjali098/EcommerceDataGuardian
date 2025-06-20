@@ -8,6 +8,7 @@ import {
   QualityTrendDataPoint, InsertQualityTrendDataPoint
 } from "@shared/schema";
 
+
 export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
@@ -51,6 +52,8 @@ export class MemStorage implements IStorage {
   private dataSources: Map<number, DataSource>;
   private anomalies: Map<number, Anomaly>;
   private qualityTrendData: Map<number, QualityTrendDataPoint>;
+  private refreshTokens: Map<number, string> = new Map(); // userId -> refreshToken
+
   
   private currentUserId: number;
   private currentQualityMetricsId: number;
@@ -59,6 +62,7 @@ export class MemStorage implements IStorage {
   private currentDataSourceId: number;
   private currentAnomalyId: number;
   private currentQualityTrendDataId: number;
+
 
   
   // Add currentUser property to track authenticated user
@@ -80,7 +84,25 @@ export class MemStorage implements IStorage {
     this.currentDataSourceId = 1;
     this.currentAnomalyId = 1;
     this.currentQualityTrendDataId = 1;
+
+  
   }
+
+  // Save refresh token for a user
+public async saveRefreshToken(userId: number, token: string): Promise<void> {
+  this.refreshTokens.set(userId, token);
+}
+
+// Get user by refresh token
+public async getUserByRefreshToken(token: string): Promise<User | undefined> {
+  for (const [userId, storedToken] of Array.from(this.refreshTokens.entries())) {
+    if (storedToken === token) {
+      return this.getUser(userId);
+    }
+  }
+  return undefined;
+}
+
 
    // Add public method to get all users
   public async getAllUsers(): Promise<User[]> {
@@ -373,5 +395,6 @@ export class MemStorage implements IStorage {
     }
   }
 }
-
+export const saveRefreshToken = (userId: number, token: string) => storage.saveRefreshToken(userId, token);
+export const getUserByRefreshToken = (token: string) => storage.getUserByRefreshToken(token);
 export const storage = new MemStorage();

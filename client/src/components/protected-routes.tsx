@@ -1,4 +1,3 @@
-// components/protected-route.tsx
 import React, { useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -9,29 +8,30 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, roles = [] }: ProtectedRouteProps): React.ReactElement | null {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
     if (!isLoading) {
-      if (!user) {
-        // Store current route for redirect after login
+      if (!isAuthenticated) {
+        // Save current route before redirecting to login
         sessionStorage.setItem('redirectUrl', location.pathname);
         navigate('/login');
-      } else if (roles.length > 0 && !roles.includes(user.role)) {
+      } else if (roles.length > 0 && (!user || !roles.includes(user.role))) {
         navigate('/unauthorized');
       }
     }
-  }, [user, isLoading, navigate, roles, location]);
+  }, [user, isAuthenticated, isLoading, navigate, roles, location]);
 
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
-  if (!user || (roles.length > 0 && !roles.includes(user.role))) {
-    return null; // Redirect will happen in useEffect
+  if (!isAuthenticated || (roles.length > 0 && (!user || !roles.includes(user.role)))) {
+    return null; // Block UI while redirect happens
   }
 
   return <>{children}</>;
 }
+

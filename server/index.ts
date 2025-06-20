@@ -1,10 +1,12 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(errorHandler);
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -68,3 +70,14 @@ app.use((req, res, next) => {
     log(`serving on port ${port}`);
   });
 })();
+
+   const admin = require('firebase-admin');
+
+   // Replace with your Firebase project's configuration
+   const serviceAccount = require('server/config/serviceAccountKey.json');
+
+   admin.initializeApp({
+     credential: admin.credential.cert(serviceAccount),
+     databaseURL: "https://ecommercedataguardian.com"
+   });
+   

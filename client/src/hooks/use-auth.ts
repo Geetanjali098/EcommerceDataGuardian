@@ -35,6 +35,12 @@ const { data: currentUser } = useQuery<User>({
       return res.json();
     },
     onSuccess: (data) => {
+      // ✅ Save JWT token
+  const token = data.token;
+  localStorage.setItem('token', token);
+
+  // ✅ Set Axios default Authorization header
+  api.defaults.headers.common['Authorization'] = `Bearer ${token}`; 
       setUser(data.user);
       queryClient.setQueryData(['/api/auth/me'], data.user);
       toast({
@@ -76,9 +82,14 @@ const { data: currentUser } = useQuery<User>({
   
   // Check if user is authenticated on mount
   useEffect(() => {
+    const storedToken = localStorage.getItem("token");
+if (storedToken) {
+  api.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
+}
+    // Load current user
         const loadUser = async () => {
       try {
-        const response = await api.getCurrentUser();
+        const response = await api.get('/api/auth/me'); // ✅ direct Axios call
         setUser(response.data);
       } catch (error) {
         setUser(null);
