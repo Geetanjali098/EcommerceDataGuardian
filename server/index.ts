@@ -1,12 +1,60 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { errorHandler } from "./middleware/errorHandler";
+import admin from "firebase-admin";
+import dotenv from "dotenv";
+
+
+// ✅ Load environment variables before anything else
+dotenv.config();
+
+// ✅ Initialize Firebase Admin SDK only once
+if (!admin.apps.length) {
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
+
+    if (
+      !serviceAccount.project_id ||
+      !serviceAccount.client_email ||
+      !serviceAccount.private_key
+    ) {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT is missing required fields.");
+    }
+
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: serviceAccount.project_id,
+        clientEmail: serviceAccount.client_email,
+        privateKey: serviceAccount.private_key.replace(/\\n/g, "\n"),
+      }),
+      databaseURL: process.env.FIREBASE_DATABASE_URL,
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    });
+
+    console.log("✅ Firebase Admin initialized successfully");
+  } catch (error) {
+    console.error("🔥 Firebase initialization error:", error);
+    process.exit(1);
+  }
+}
 
 const app = express();
+
+  //  CORS CONFIGURATION
+    app.use(
+      cors({
+        origin: 'http://localhost:5000', // Adjust this to your frontend URL if different
+        credentials: true, // Required for cookies/session
+        allowedHeaders: ['Authorization', 'Content-Type'],
+      })
+    );
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(errorHandler);
+
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -71,13 +119,5 @@ app.use((req, res, next) => {
   });
 })();
 
-   const admin = require('firebase-admin');
-
-   // Replace with your Firebase project's configuration
-   const serviceAccount = require('server/config/serviceAccountKey.json');
-
-   admin.initializeApp({
-     credential: admin.credential.cert(serviceAccount),
-     databaseURL: "https://ecommercedataguardian.com"
-   });
+  
    

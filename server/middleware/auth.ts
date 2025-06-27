@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
+import admin from "firebase-admin";
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -15,19 +16,19 @@ export const isAuthenticated = (
   res: Response,
   next: NextFunction
 ) => {
-  const token = req.headers.authorization?.split(' ')[1]; // Bearer <token>
+  const authToken = req.headers.authorization?.split("Bearer ")[1];
 
-  if (!token) {
+  if (!authToken) {
     return res.status(401).json({ message: "Not authenticated" });
   }
 
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_SECRET is not defined in environment variables");
+  }
+
   try {
-    const secret =
-      process.env.JWT_SECRET ||
-      "52f312bc46471fc4d501654e5b3757ee97899f05df067fbb1dd8eb77f977d1465cead8140bfadc58cce1256b77ae0ea08ab63a63d109a8a80b425f76ffeb38d8";
-
-    const decoded = jwt.verify(token, secret) as AuthenticatedRequest["user"];
-
+    const decoded = jwt.verify(authToken, secret) as AuthenticatedRequest["user"];
     req.user = decoded;
     return next();
   } catch (err) {
@@ -35,7 +36,7 @@ export const isAuthenticated = (
   }
 };
 
-// ✅ Admin-only route protection
+// ✅ Admin-only access middleware
 export const isAdmin = (
   req: AuthenticatedRequest,
   res: Response,
@@ -52,7 +53,7 @@ export const isAdmin = (
   next();
 };
 
-// ✅ Analyst or Admin role access
+// ✅ Analyst or Admin access middleware
 export const isAnalyst = (
   req: AuthenticatedRequest,
   res: Response,
@@ -69,23 +70,24 @@ export const isAnalyst = (
   next();
 };
 
-// ✅ Optional: Minimal JWT check (lighter than full user fetch)
+// ✅ Lightweight token validation
 export const isJwtAuthenticated = (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
-  const token = req.headers.authorization?.split(" ")[1];
+  const token = req.headers.authorization?.split("Bearer ")[1];
 
   if (!token) {
     return res.status(401).json({ message: "Not authenticated" });
   }
 
-  try {
-    const secret =
-      process.env.JWT_SECRET ||
-      "52f312bc46471fc4d501654e5b3757ee97899f05df067fbb1dd8eb77f977d1465cead8140bfadc58cce1256b77ae0ea08ab63a63d109a8a80b425f76ffeb38d8";
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_SECRET is not defined in environment variables");
+  }
 
+  try {
     const decoded = jwt.verify(token, secret) as AuthenticatedRequest["user"];
     req.user = decoded;
     next();
@@ -93,5 +95,6 @@ export const isJwtAuthenticated = (
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
+
 
 

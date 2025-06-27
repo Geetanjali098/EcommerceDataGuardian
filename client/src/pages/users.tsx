@@ -20,7 +20,17 @@ import { UserPlus, Users, UserCog, Mail, Shield, User as UserIcon } from 'lucide
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/axios';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
+// Mock data for users
+const createUser = async () => {
+  await addDoc(collection(db, 'users'), {
+    name: 'Geetanjali',
+    role: 'admin',
+    createdAt: new Date(),
+  });
+};
 // Mock users for display
 const USER_LIST: User[] = [
   {
