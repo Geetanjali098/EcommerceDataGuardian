@@ -4,7 +4,7 @@ import App from "./App";
 import "./index.css";
 import axios from "axios";
 import { QueryClient, QueryClientProvider, QueryCache } from '@tanstack/react-query';
-import { BrowserRouter } from "react-router-dom";
+
 
 // Create QueryClient
 const queryClient = new QueryClient({
@@ -36,11 +36,9 @@ if (token) {
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <App />
       </QueryClientProvider>
-    </BrowserRouter>
   </React.StrictMode>
 );
 

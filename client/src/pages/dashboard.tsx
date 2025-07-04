@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet';
+import { useAuth } from '@/hooks/use-auth';
 import { downloadCSV } from '@/lib/utils';
 import { Navbar } from '@/components/layout/navbar';
 import { Sidebar } from '@/components/layout/sidebar';
@@ -20,12 +21,63 @@ import { useToast } from '@/hooks/use-toast';
 import { DownloadIcon } from 'lucide-react';
 
 
+
 export default function Dashboard() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true); // New state for desktop sidebar
+   const { user, isAuthenticated, isLoading } = useAuth();
   const [timeRange, setTimeRange] = useState('24h');
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const DesktopSidebar = () => {
+    setIsDesktopSidebarOpen(!isDesktopSidebarOpen);
+  };
+ 
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark">
+        <div className="animate-pulse text-primary">Loading...</div>
+      </div>
+    );
+  }
+
+  // If not authenticated, don't render the page content
+  if (!isAuthenticated || !user) {
+    return null;
+  }
+   
+
+
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark">
+        <div className="animate-pulse text-primary">Loading...</div>
+      </div>
+    );
+  }
+
+  // If not authenticated, don't render the page content
+  if (!isAuthenticated || !user) {
+    return null;
+  }
+
+
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark">
+        <div className="animate-pulse text-primary">Loading...</div>
+      </div>
+    );
+  }
+
+  // If not authenticated, don't render the page content
+  if (!isAuthenticated || !user) {
+    return null;
+  }
   
   // Fetch dashboard data
   const { data: qualityMetrics, isLoading: isLoadingMetrics } = useQuery<QualityMetric>({

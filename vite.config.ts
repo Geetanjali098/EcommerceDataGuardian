@@ -21,7 +21,13 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "client", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
-    },
+      "@components": path.resolve(import.meta.dirname, "client", "src", "components"),
+      "@utils": path.resolve(import.meta.dirname, "client", "src", "utils"),
+      "@config": path.resolve(import.meta.dirname, "client", "src", "config"),
+      "@types": path.resolve(import.meta.dirname, "client", "src", "types"),
+      "@models": path.resolve(import.meta.dirname, "server", "models"),
+    
+      "@server": path.resolve(import.meta.dirname, "server"),},
   },
   root: path.resolve(import.meta.dirname, "client"),
   build: {

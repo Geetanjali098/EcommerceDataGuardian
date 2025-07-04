@@ -20,6 +20,15 @@
       "@/*": ["./client/src/*"],
       "@shared/*": ["./shared/*"],
       "@server/*": ["./server/*"],
+      "@controller/*": ["./server/controller/*"],
+      "@hooks/*": ["./server/hooks/*"],
+      "@middleware/*": ["./server/middleware/*"],
+      "@routes/*": ["./server/routes/*"],
+      "@storage/*": ["./server/storage/*"],
+      "@utils/*": ["./server/utils/*"],
+      "@config/*": ["./server/config/*"],
+      "@types/*": ["./server/types/*"],
+      "@models/*": ["./server/models/*"],
 
     }
   }

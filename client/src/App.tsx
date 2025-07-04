@@ -17,7 +17,7 @@ import Dashboard from "@/pages/dashboard";
 
 // Protected route component
 function ProtectedRoute({ component: Component, ...rest }: any) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   
   // Show loading state while checking authentication
   if (isLoading) {
@@ -27,6 +27,15 @@ function ProtectedRoute({ component: Component, ...rest }: any) {
       </div>
     );
   }
+
+    // Check if user has valid token but no user data (token might be expired)
+  const hasToken = !!localStorage.getItem('token');
+  if (hasToken && !user && !isLoading) {
+    // Token exists but user data is null, likely expired token
+    localStorage.removeItem('token');
+    return <Redirect to="/login" />;
+  }
+  
   
   // Render the component if authenticated, otherwise redirect to login
   return isAuthenticated ? <Component {...rest} /> : <Redirect to="/login" />;

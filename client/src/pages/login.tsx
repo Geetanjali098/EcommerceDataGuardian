@@ -22,12 +22,14 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { BarChartBig, Lock, AlertTriangle } from 'lucide-react';
-import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import app from '@/lib/firebase';
+import { getAuth, signInWithPopup, GoogleAuthProvider,signInWithEmailAndPassword } from 'firebase/auth';
+import app  from '@/lib/firebase';
 import { apiRequest } from '@/lib/queryClient';
+import { useNavigate } from 'react-router-dom';
+
 
 const loginFormSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
+  identifier: z.string().min(1, 'Username or Email is required'),
   password: z.string().min(1, 'Password is required'),
 });
 
@@ -39,11 +41,16 @@ export default function Login() {
   const { toast } = useToast();
   const [selectedRole, setSelectedRole] = useState<string>('analyst');
   const [authError, setAuthError] = useState<string>('');
+      // Initialize Firebase authentication and navigation
+    const auth = getAuth();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
-      username: '',
+      identifier: '', // This will accept both username and email
       password: '',
     },
   });
@@ -58,7 +65,7 @@ export default function Login() {
   const onSubmit = (values: LoginFormValues) => {
     setAuthError('');
     login.mutate({
-      username: values.username,
+      username: values.identifier, // username OR email
       password: values.password,
     }, {
       onSuccess: () => {
@@ -76,6 +83,8 @@ export default function Login() {
     });
   };
 
+
+
  const [googleLoading, setGoogleLoading] = useState(false);
 
 const handleGoogleSignIn = async () => {
@@ -85,9 +94,17 @@ const handleGoogleSignIn = async () => {
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
 
+  // Force account selection
+  provider.setCustomParameters({
+    prompt: 'select_account'
+  });
+
   try {
     const result = await signInWithPopup(auth, provider);
-    const firebaseToken = await result.user.getIdToken();
+    const firebaseToken = await result.user.getIdToken(true); // Force refresh
+
+    console.log("Firebase token obtained:", firebaseToken ? "✅" : "❌");
+    console.log("Selected role:", selectedRole);
 
     // Send Firebase token + selected role to backend
     const response = await apiRequest("POST", "/api/auth/google", {
@@ -97,15 +114,38 @@ const handleGoogleSignIn = async () => {
 
     if (response.ok) {
       const data = await response.json();
-      localStorage.setItem("token", data.token); // ✅ Store backend JWT
-      localStorage.setItem("role", selectedRole); // Optional
+           console.log("Backend response:", data);
+      
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", selectedRole);
+      
+      // Set axios header immediately
+      const api = (await import('@/lib/axios')).default;
+      api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+      
+      toast({
+        title: "Success!",
+        description: `Welcome ${data.user.name}! Signed in as ${selectedRole}.`,
+      });
+      
       setLocation('/dashboard');
     } else {
-      throw new Error("Failed to authenticate with backend");
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to authenticate with backend");
     }
 
   } catch (error: any) {
-    const errorMessage = error?.message || "Try again later.";
+    console.error("Google Sign-In error:", error);
+    let errorMessage = "Authentication failed. Please try again.";
+    
+    if (error.code === 'auth/popup-closed-by-user') {
+      errorMessage = "Sign-in was cancelled.";
+    } else if (error.code === 'auth/popup-blocked') {
+      errorMessage = "Popup was blocked. Please allow popups for this site.";
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
     setAuthError(`Google Sign-In Failed: ${errorMessage}`);
     toast({
       title: "Google Sign-In Failed",
@@ -163,14 +203,14 @@ const handleGoogleSignIn = async () => {
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
                     <FormField
                       control={form.control}
-                      name="username"
+                      name="identifier"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel>Username or Email</FormLabel>
                           <FormControl>
                             <Input
                               className='py-2 text-sm bg-gray-50 dark:bg-gray-700'
-                              placeholder="Enter your username"
+                              placeholder="Enter your username or email"
                               {...field}
                               autoComplete="username"
                             />

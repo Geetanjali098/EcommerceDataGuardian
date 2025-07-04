@@ -37,7 +37,7 @@ const USER_LIST: User[] = [
     id: 1,
     username: 'admin',
     role: "admin",
-    name: 'Admin User',
+    name: 'Joe Goldberg',
     email: 'admin@example.com',
     avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin'
   },
@@ -45,7 +45,7 @@ const USER_LIST: User[] = [
     id: 2,
     username: 'analyst',
     role: "analyst",
-    name: 'Data Analyst',
+    name: 'Lisa Antony',
     email: 'analyst@example.com',
     avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=analyst'
   },
@@ -78,7 +78,7 @@ export default function UsersPage() {
   const { data: users = [], isLoading, isError, refetch } = useQuery<User[]>({
     queryKey: ['users'],
     queryFn: async () => {
-      const response = await api.get("/auth/me");
+      const response = await api.get("/api/users");
       return response.data;
     },
      enabled: !!currentUser && currentUser.role === 'admin', // Only fetch if admin
@@ -217,15 +217,16 @@ export default function UsersPage() {
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
-                      {users.map((user) => (
+                    <TableBody>                     
+                        {users.map((user) => (
                         <TableRow key={user.id}>
-                          <TableCell>
+                          <TableCell>{user.name}
                             <Avatar>
                               <AvatarImage src={user.avatarUrl} alt={user.name} />
                               <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                           </TableCell>
+                       
                           <TableCell className="font-medium">
                             <div>
                               <div>{user.name}</div>

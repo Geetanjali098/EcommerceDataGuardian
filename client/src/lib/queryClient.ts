@@ -79,6 +79,7 @@ export const getQueryFn = <T>(options: {
 
     const url = queryKey[0];
     const token = localStorage.getItem("token");
+  
 
     const headers = new Headers({
       Accept: "application/json",
@@ -86,16 +87,15 @@ export const getQueryFn = <T>(options: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     });
 
-    const fetchOptions: RequestInit = {
+   const fetchOptions: RequestInit = {
       method: "GET",
-      headers,
-      credentials: "include",
+      headers,     
       ...(signal ? { signal } : {}),
     };
 
     try {
       const res = await fetch(url, fetchOptions);
-
+      
       if (res.status === 401) {
         if (options.on401 === "returnNull") {
           return null as T;
@@ -139,5 +139,4 @@ export const queryClient = new QueryClient({
     },
   },
 });
-
-   
+ 

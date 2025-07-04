@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import admin from "firebase-admin";
+import express from 'express';
+
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -35,6 +37,13 @@ export const isAuthenticated = (
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
+
+ // /me route
+const router = express.Router();
+
+router.get("/me", isAuthenticated, (req, res) => {
+  res.json({ user: req.user });
+});
 
 // ✅ Admin-only access middleware
 export const isAdmin = (
@@ -96,5 +105,4 @@ export const isJwtAuthenticated = (
   }
 };
 
-
-
+export default router;

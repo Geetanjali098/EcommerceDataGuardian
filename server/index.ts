@@ -5,10 +5,9 @@ import { setupVite, serveStatic, log } from "./vite";
 import { errorHandler } from "./middleware/errorHandler";
 import admin from "firebase-admin";
 import dotenv from "dotenv";
-
-
-// ✅ Load environment variables before anything else
 dotenv.config();
+
+
 
 // ✅ Initialize Firebase Admin SDK only once
 if (!admin.apps.length) {

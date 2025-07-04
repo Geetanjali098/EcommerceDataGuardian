@@ -1,10 +1,43 @@
 // lib/axios.ts
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import axios, { AxiosInstance, AxiosError } from 'axios';
 import { toast } from '@/hooks/use-toast';
 
-
-//Track Token Expiry and Auto-Logout
+// Track Token Expiry and Auto-Logout
 let logoutTimer: ReturnType<typeof setTimeout> | null = null;
+
+// Utility functions for token management
+const getToken = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('token');
+  }
+  return null;
+};
+
+const setToken = (token: string): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('token', token);
+  }
+};
+
+const removeToken = (): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('token');
+  }
+};
+
+// Helper function to parse JWT token
+function parseJwt(token: string): { exp: number } | null {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
 
 function scheduleAutoLogout(token: string) {
   const decoded = parseJwt(token);
@@ -27,29 +60,9 @@ function scheduleAutoLogout(token: string) {
 function handleAutoLogout() {
   removeToken();
   if (logoutTimer) clearTimeout(logoutTimer);
+  delete api.defaults.headers.common['Authorization'];
   window.location.href = "/login";
 }
-// This function checks if the token is valid and schedules auto logout
-
-// Utility functions for token management
-const getToken = (): string | null => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('token');
-  }
-  return null;
-};
-
-const setToken = (token: string): void => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('token', token);
-  }
-};
-
-const removeToken = (): void => {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('token');
-  }
-};
 
 // Extend AxiosInstance with custom methods
 interface CustomAxiosInstance extends AxiosInstance {
@@ -60,7 +73,7 @@ interface CustomAxiosInstance extends AxiosInstance {
 
 // Create axios instance
 const api = axios.create({
-  baseURL:import.meta.env.VITE_API_BASE_URL|| 'http://localhost:5000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -69,7 +82,7 @@ const api = axios.create({
 
 // Request interceptor
 api.interceptors.request.use(
- (config) => {
+  (config) => {
     const token = getToken();
     if (token) {
       config.headers = config.headers || {};
@@ -87,6 +100,8 @@ api.interceptors.response.use(
     if (error.response) {
       if (error.response.status === 401) {
         removeToken();
+        delete api.defaults.headers.common['Authorization'];
+        if (logoutTimer) clearTimeout(logoutTimer);
         window.location.href = '/login';
       }
 
@@ -108,41 +123,46 @@ api.interceptors.response.use(
   }
 );
 
-// add a helper function to parse JWT token
-// This function extracts the expiration time from a JWT token
-function parseJwt(token: string): { exp: number } | null {
-  try {
-    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    const decoded = JSON.parse(atob(base64));
-    return decoded;
-  } catch {
-    return null;
-  }
-}
-
-
 // Add auth methods to the api instance
 api.login = async (credentials: { username: string; password: string }) => {
-  const response = await api.post('/auth/login', credentials);
-  setToken(response.data.token);
-   scheduleAutoLogout( response.data.token); // ✅ Set the timer here
-  return response.data.user;
+  const response = await api.post('/api/auth/login', credentials);
+  const { token, user } = response.data;
+
+  if (token) {
+    setToken(token);
+    scheduleAutoLogout(token);
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  }
+
+  return { token, user };
 };
 
-api.logout = () => {
-  removeToken();
-  return api.post('/auth/logout');
+api.logout = async () => {
+  try {
+    const response = await api.post('/api/auth/logout');
+    removeToken();
+    delete api.defaults.headers.common['Authorization'];
+    if (logoutTimer) clearTimeout(logoutTimer);
+    return response.data;
+  } catch (error) {
+    // Even if logout fails on server, clean up client state
+    removeToken();
+    delete api.defaults.headers.common['Authorization'];
+    if (logoutTimer) clearTimeout(logoutTimer);
+    throw error;
+  }
 };
 
 api.getCurrentUser = async () => {
-  return api.get('/auth/me');
+  const response = await api.get('/api/auth/me');
+  return response.data;
 };
 
+// Initialize token on startup
 const storedToken = getToken();
 if (storedToken) {
   api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-  scheduleAutoLogout(storedToken); // ✅ Set timer on page reload
+  scheduleAutoLogout(storedToken);
 }
-// Automatically set the Authorization header if token exists
 
 export default api;

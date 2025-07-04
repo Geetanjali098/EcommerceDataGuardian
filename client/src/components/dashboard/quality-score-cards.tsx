@@ -6,6 +6,7 @@ import {
 import { QualityMetric } from '@/types';
 import { BarChartBig, Clock, CheckCircle, Target } from 'lucide-react';
 import { cn, getChangeColor, getChangeIcon } from '@/lib/utils';
+import { useAuthenticatedQuery } from '@/hooks/use-authenticated-queries';
 
 interface QualityScoreCardsProps {
   metrics: QualityMetric;
