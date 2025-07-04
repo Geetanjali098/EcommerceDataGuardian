@@ -5,3 +5,4 @@ server/public
 vite.config.ts.*
 *.tar.gz
 server/config/ecommercedataguardian-firebase-adminsdk-fbsvc-3eb6d9fbfe.json
+.env
