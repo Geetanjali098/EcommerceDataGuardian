@@ -13,6 +13,8 @@ import React, { Suspense } from "react";
 import Login from "@/pages/login";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
+import Signup from './pages/signup';
+
 
 
 // Protected route component
@@ -165,7 +167,11 @@ function Router() {
             </Suspense>
           )} />
         </Route>
-        
+              
+        <Route path="/signup">
+          <Signup />
+        </Route>
+
         {/* Fallback to 404 */}
         <Route path="404">
           <NotFound />

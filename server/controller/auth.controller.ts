@@ -9,6 +9,9 @@ import jwt from 'jsonwebtoken';
 
 dotenv.config();
 
+//signup handler
+// This function handles user registration, including email and username checks, password hashing, and JWT token
+
 export const signup = async (req: Request, res: Response) => {
   try {
     const body = req.body as any;
@@ -22,15 +25,22 @@ export const signup = async (req: Request, res: Response) => {
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
+    console.log("Hashed password:", hashedPassword);
 
+    // Validate required fields
+    if (!name || !email || !username || !password) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
     // Save user
-    const user = await User.create({
+    const user = new User({
       name,
       email,
       username,
       password: hashedPassword,
       role,
     });
+    await user.save();
+
 
     // Create JWT token
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET!, {
@@ -84,26 +94,38 @@ const verifyToken = async (req: Request, res: Response, next: Function) => {
 //  login handler
 export const login = async (req: Request, res: Response) => {
   try {
-    const { identifier, password } = req.body;
-
+    const { username, password } = req.body;
+     console.log("Received login:", { username, password });
+//find user by email or username
     const user = await User.findOne({
-      $or: [{ email: identifier }, { username: identifier }],
+      $or: [{ email:username }, { username: username }],
     });
 
-    if (!user) {
-      return res.status(401).json({ message: 'User not found' });
-    }
+    console.log("User found in DB:", user);
 
-    const isMatch = await bcrypt.compare(password, identifier.password);
+    if (!user || !user.password) {
+      console.log("User not found or missing password!");
+  return res.status(401).json({ message: 'User password is missing in database' });
+}
+console.log("Login Attempt:", { username, password });
+console.log("Request body:", req.body);
+console.log("User found:", user);
+console.log("Password stored:", user?.password);
+console.log("Password entered:", password); 
+
+const isMatch = await bcrypt.compare(password, user.password);
+ console.log("Password match result:", isMatch);
+    // Check if password matches
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
-
+// Create JWT token
+    console.log("Creating JWT token for user:", user._id);
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET!, {
       expiresIn: '7d',
     });
 
-    res.json({
+    res.status(200).json({
       token,
       user: {
         id: user._id,

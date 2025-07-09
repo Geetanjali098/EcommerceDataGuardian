@@ -5,9 +5,15 @@ import { setupVite, serveStatic, log } from "./vite";
 import { errorHandler } from "./middleware/errorHandler";
 import admin from "firebase-admin";
 import dotenv from "dotenv";
+import mongoose from 'mongoose';
+
+// Load environment variables from .env file
 dotenv.config();
 
-
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI!)
+  .then(() => console.log("✅ MongoDB connected successfully"))
+  .catch((err) => console.error("❌ MongoDB connection failed", err));
 
 // ✅ Initialize Firebase Admin SDK only once
 if (!admin.apps.length) {

@@ -22,12 +22,11 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { BarChartBig, Lock, AlertTriangle } from 'lucide-react';
-import { getAuth, signInWithPopup, GoogleAuthProvider,signInWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, } from 'firebase/auth';
 import app  from '@/lib/firebase';
-import { apiRequest } from '@/lib/queryClient';
-import { useNavigate } from 'react-router-dom';
 
-
+// Define the login form schema using Zod
+// This schema validates the login form inputs
 const loginFormSchema = z.object({
   identifier: z.string().min(1, 'Username or Email is required'),
   password: z.string().min(1, 'Password is required'),
@@ -39,14 +38,11 @@ export default function Login() {
   const [_, setLocation] = useLocation();
   const { login, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const [selectedRole, setSelectedRole] = useState<string>('analyst');
+
   const [authError, setAuthError] = useState<string>('');
       // Initialize Firebase authentication and navigation
-    const auth = getAuth();
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-
-
+    const auth = getAuth(app);
+   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
@@ -61,101 +57,42 @@ export default function Login() {
       setLocation('/dashboard');
     }
   }, [isAuthenticated, setLocation]);
-
+ 
   const onSubmit = (values: LoginFormValues) => {
     setAuthError('');
-    login.mutate({
-      username: values.identifier, // username OR email
-      password: values.password,
-    }, {
-      onSuccess: () => {
-        setLocation('/dashboard');
-      },
-      onError: (error: any) => {
-        const errorMessage = error.message || "Invalid credentials. Please try again.";
-        setAuthError(`Authentication Error: ${errorMessage}`);
-        toast({
-          variant: "destructive",
-          title: "Login failed",
-          description: errorMessage,
-        });
-      }
-    });
-  };
 
-
-
- const [googleLoading, setGoogleLoading] = useState(false);
-
-const handleGoogleSignIn = async () => {
-  setAuthError('');
-  setGoogleLoading(true);
-
-  const auth = getAuth(app);
-  const provider = new GoogleAuthProvider();
-
-  // Force account selection
-  provider.setCustomParameters({
-    prompt: 'select_account'
+     // ✅ Console payload before sending
+  console.log("Login Payload:", {
+    username: values.identifier,
+    password: values.password,
   });
-
-  try {
-    const result = await signInWithPopup(auth, provider);
-    const firebaseToken = await result.user.getIdToken(true); // Force refresh
-
-    console.log("Firebase token obtained:", firebaseToken ? "✅" : "❌");
-    console.log("Selected role:", selectedRole);
-
-    // Send Firebase token + selected role to backend
-    const response = await apiRequest("POST", "/api/auth/google", {
-      token: firebaseToken,
-      role: selectedRole,
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-           console.log("Backend response:", data);
-      
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", selectedRole);
-      
-      // Set axios header immediately
-      const api = (await import('@/lib/axios')).default;
-      api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
-      
-      toast({
-        title: "Success!",
-        description: `Welcome ${data.user.name}! Signed in as ${selectedRole}.`,
-      });
-      
-      setLocation('/dashboard');
-    } else {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to authenticate with backend");
-    }
-
-  } catch (error: any) {
-    console.error("Google Sign-In error:", error);
-    let errorMessage = "Authentication failed. Please try again.";
+   
+    // Use the login mutation with error handling
+login.mutate({
+  username: values.identifier, // username OR email
+  password: values.password,
+}, {
+  onSuccess: async (data) => {
+    localStorage.setItem('token', data.token); // ✅ Save token
+    // ✅ Optional: Set token for axios
+    const api = (await import('@/lib/axios')).default;
+    api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
     
-    if (error.code === 'auth/popup-closed-by-user') {
-      errorMessage = "Sign-in was cancelled.";
-    } else if (error.code === 'auth/popup-blocked') {
-      errorMessage = "Popup was blocked. Please allow popups for this site.";
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-    
-    setAuthError(`Google Sign-In Failed: ${errorMessage}`);
+    setLocation('/dashboard');
+  },
+  // Handle successful login
+  // This will redirect to the dashboard if login is successful
+  onError: (error: any) => {
+    const errorMessage = error.message || "Invalid credentials. Please try again.";
+    setAuthError(`Authentication Error: ${errorMessage}`);
     toast({
-      title: "Google Sign-In Failed",
-      description: errorMessage,
       variant: "destructive",
+      title: "Authentication Failed",
+      description: "Please check your credentials and try again.",
     });
-  } finally {
-    setGoogleLoading(false);
   }
-};
+});
+  };
 
   return (
     <>
@@ -252,46 +189,13 @@ const handleGoogleSignIn = async () => {
                           <Lock className="mr-2 h-4 w-4" /> Sign In
                         </>
                       )}
-                    </Button>
-
-                    <p className="text-sm text-center text-gray-500 dark:text-gray-400">
-                      OR Don't have an account?
+                    </Button>                 
+                   <p className="text-sm text-center text-muted-foreground mt-2">
+                      Don&apos;t have an account?{" "}
+                 <a href="/signup" className="text-primary hover:underline">Sign up</a>
                     </p>
                   </form>
-                </Form>
-
-                {/* Role Selection Dropdown */}
-                <div className="mt-4">
-                  <label htmlFor="role-select" className="block text-sm font-medium mb-2">
-                    Select your role
-                  </label>
-                  <select
-                    id="role-select"
-                    value={selectedRole}
-                    onChange={(e) => setSelectedRole(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm"
-                  >
-                    <option value="analyst">Analyst</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-
-                {/* Google Sign-In Button */}
-                <Button
-                  onClick={handleGoogleSignIn}
-                   disabled={googleLoading}
-                  className="w-full mt-4 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
-                  variant="outline"
-                >
-                  {googleLoading ? (
-                         "Signing in..."
-                      ) : (
-                             <>
-                  <img src="https://img.icons8.com/color/16/google-logo.png" alt="Google" className="mr-2" />
-                  Sign up with Google based on your work role
-                    </>
-                )}
-                </Button>
+                </Form>             
               </CardContent>
 
               <CardFooter className='pt-0'>
