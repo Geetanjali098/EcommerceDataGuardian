@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { AlertTriangle, AlertCircle, Info } from 'lucide-react';
 import { cn, formatTimeAgo, getSeverityColor } from '@/lib/utils';
+import { useAuthenticatedQuery } from '@/hooks/use-authenticated-queries';
 
 export default function Anomalies() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
@@ -24,10 +25,9 @@ export default function Anomalies() {
   const [severityFilter, setSeverityFilter] = React.useState<string>("all");
   const { toast } = useToast();
   
-  // Fetch anomalies
-  const { data: anomalies, isLoading: isLoadingAnomalies } = useQuery<Anomaly[]>({
-    queryKey: ['/api/dashboard/anomalies'],
-  });
+   // Fetch recent anomalies for the alert history
+    const { data: anomalies, isLoading: isLoadingAnomalies } = useAuthenticatedQuery<Anomaly[]>
+    (['/api/dashboard/anomalies']);
   
   // Filter anomalies by severity
   const filteredAnomalies = React.useMemo(() => {

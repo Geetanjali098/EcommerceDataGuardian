@@ -20,9 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Bell, Clock, Mail, Smartphone, Zap, Check, X } from 'lucide-react';
 import { cn, formatTimeAgo } from '@/lib/utils';
-
-
-
+import { useAuthenticatedQuery } from '@/hooks/use-authenticated-queries';
 
 const ALERT_TYPES = [
   { 
@@ -90,10 +88,10 @@ export default function Alerts() {
   const { toast } = useToast();
   
   // Fetch recent anomalies for the alert history
-  const { data: anomalies, isLoading: isLoadingAnomalies } = useQuery<Anomaly[]>({
-    queryKey: ['/api/dashboard/anomalies', { limit: 5 }],
-  });
-  
+  const { data: anomalies, isLoading: isLoadingAnomalies } = useAuthenticatedQuery<Anomaly[]>
+  (['/api/dashboard/anomalies']);
+ 
+
   const handleToggleAlert = (id: number) => {
     setAlertConfigs(prev => 
       prev.map(alert => 

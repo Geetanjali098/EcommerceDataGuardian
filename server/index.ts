@@ -6,6 +6,7 @@ import { errorHandler } from "./middleware/errorHandler";
 import admin from "firebase-admin";
 import dotenv from "dotenv";
 import mongoose from 'mongoose';
+import bcrypt from "bcryptjs";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -50,7 +51,7 @@ const app = express();
   //  CORS CONFIGURATION
     app.use(
       cors({
-        origin: 'http://localhost:5000', // Adjust this to your frontend URL if different
+        origin: ['http://localhost:5000', 'http://0.0.0.0:5000'], // Support both localhost and 0.0.0.0
         credentials: true, // Required for cookies/session
         allowedHeaders: ['Authorization', 'Content-Type'],
       })

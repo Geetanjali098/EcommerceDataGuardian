@@ -19,6 +19,8 @@ import {
   TableHeader, TableRow 
 } from '@/components/ui/table';
 import { cn, formatTimeAgo, getScoreColor, getStatusColor } from '@/lib/utils';
+import { useAuthenticatedQuery } from '@/hooks/use-authenticated-queries';
+
 
 
 export default function DataPipelines() {
@@ -28,9 +30,9 @@ export default function DataPipelines() {
   const { toast } = useToast();
   
   // Fetch data pipelines
-  const { data: pipelines, isLoading: isLoadingPipelines } = useQuery<DataPipeline[]>({
-    queryKey: ['/api/dashboard/data-pipelines'],
-  });
+  const { data: pipelines, isLoading: isLoadingPipelines } = useAuthenticatedQuery<DataPipeline[]>
+    (['/api/dashboard/data-pipelines']);
+  
   
   const handleRefreshPipelines = () => {
     queryClient.invalidateQueries({ queryKey: ['/api/dashboard/data-pipelines'] });

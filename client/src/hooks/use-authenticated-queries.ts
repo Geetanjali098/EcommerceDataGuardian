@@ -12,12 +12,15 @@ export function useAuthenticatedQuery<T>(
     queryKey,
     enabled: isAuthenticated && !authLoading && (options?.enabled !== false),
     queryFn: async () => {
-      const url = queryKey[0];
+      const endpoint = queryKey[0];
       const token = localStorage.getItem('token');
       
       if (!token) {
         throw new Error('No authentication token found');
       }
+
+        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const url = endpoint.startsWith('http') ? endpoint : `${baseURL}${endpoint}`;
 
       const response = await fetch(url, {
         headers: {

@@ -22,22 +22,26 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { BarChartBig, Lock, AlertTriangle } from 'lucide-react';
-import { getAuth, } from 'firebase/auth';
+import { getAuth,signInWithPopup, GoogleAuthProvider, } from 'firebase/auth';
 import app  from '@/lib/firebase';
+
 
 // Define the login form schema using Zod
 // This schema validates the login form inputs
 const loginFormSchema = z.object({
   identifier: z.string().min(1, 'Username or Email is required'),
   password: z.string().min(1, 'Password is required'),
+  role: z.enum(['admin', 'analyst']),
 });
 
 type LoginFormValues = z.infer<typeof loginFormSchema>;
 
 export default function Login() {
   const [_, setLocation] = useLocation();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated ,googleAuth } = useAuth();
   const { toast } = useToast();
+  // State to manage Google sign-in loading state
+  const [googleLoading, setGoogleLoading] = React.useState(false);
 
   const [authError, setAuthError] = useState<string>('');
       // Initialize Firebase authentication and navigation
@@ -48,8 +52,50 @@ export default function Login() {
     defaultValues: {
       identifier: '', // This will accept both username and email
       password: '',
+       role: 'analyst', // default role
     },
   });
+
+
+// ✅ Handle Google Sign-In with role-based redirection
+const handleGoogleSignIn = async () => {
+  setGoogleLoading(true);
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+
+  try {
+    const result = await signInWithPopup(getAuth(app), provider);
+    const firebaseToken = await result.user.getIdToken(true);
+    const selectedRole = form.getValues().role;
+
+    googleAuth.mutate({
+      idToken: firebaseToken,
+      role: selectedRole,
+    }, {
+      onSuccess: (data) => {
+        console.log("Google sign-in successful, navigating to dashboard");
+        setLocation('/dashboard'); // ✅ Use wouter navigation
+      },
+      onError: (error: any) => {
+        console.error("Google sign-in error:", error);
+        toast({
+          title: "Google sign-in failed",
+          description: error.message || "Something went wrong",
+          variant: "destructive",
+        });
+      }
+    });
+  } catch (error: any) {
+    console.error("Google authentication error:", error);
+    toast({
+      title: "Error",
+      description: error.message || "Google sign-in failed.",
+      variant: "destructive",
+    });
+  } finally {
+    setGoogleLoading(false);
+  }
+};
 
   // Redirect if already authenticated
   React.useEffect(() => {
@@ -194,16 +240,49 @@ login.mutate({
                       Don&apos;t have an account?{" "}
                  <a href="/signup" className="text-primary hover:underline">Sign up</a>
                     </p>
+                    <FormField
+                    control={form.control}
+                       name="role"
+                       render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Select Role</FormLabel>
+                         <FormControl>
+                           <select
+                           {...field}
+          className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+                     >
+          <option value="analyst">Analyst</option>
+          <option value="admin">Admin</option>
+                  </select>
+                  </FormControl>
+                  <FormMessage />
+                   </FormItem>
+                   )}
+                      />
                   </form>
-                </Form>             
+                </Form>         
+               {/* Google Sign-In Button */}
+               <div className="mt-4 text-center">
+                    <button
+                    onClick={handleGoogleSignIn}
+                    disabled={googleLoading}
+                  className="inline-flex items-center text-sm text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                      <img
+                      src="https://img.icons8.com/color/16/google-logo.png"
+                        alt="Google"
+                       className="mr-2"
+                          />
+                 {googleLoading ? "Signing in..." : "Sign in with Google based on your role"}
+                   </button>
+                          </div>
+           
               </CardContent>
-
-              <CardFooter className='pt-0'>
+               <CardFooter className='pt-0'>
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 w-full">
-                  <p className="text-sm font-medium mb-1">Demo credentials:</p>
-                  <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                    <p>Username: admin | Password: admin123</p>
-                    <p>Username: analyst | Password: analyst123</p>
+                  <p className="text-sm font-medium mb-1">Use your registered credentials to sign in</p>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                    <p>Enter your username/email and password</p>
                   </div>
                 </div>
               </CardFooter>

@@ -35,18 +35,18 @@ const createUser = async () => {
 const USER_LIST: User[] = [
   {
     id: 1,
-    username: 'admin',
+    username: 'geetanjali',
     role: "admin",
-    name: 'Joe Goldberg',
-    email: 'admin@example.com',
+    name: 'Geetanjali Nishad',
+    email: 'nishadgeetanjali84@gmail.com',
     avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin'
   },
   {
     id: 2,
-    username: 'analyst',
+    username: 'gitu',
     role: "analyst",
-    name: 'Lisa Antony',
-    email: 'analyst@example.com',
+    name: 'Gitu Nishad',
+    email: 'gitunishad38@gmail.com',
     avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=analyst'
   },
   {

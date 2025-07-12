@@ -10,6 +10,7 @@ import {
   Card, CardContent, CardHeader, CardTitle, 
   CardDescription 
 } from '@/components/ui/card';
+import { useAuthenticatedQuery } from '@/hooks/use-authenticated-queries';
 import { useToast } from '@/hooks/use-toast';
 import { Database, BarChart2, AlertTriangle } from 'lucide-react';
 import { DataQualityBySource } from '@/components/dashboard/data-quality-by-source';
@@ -22,10 +23,10 @@ export default function DataSources() {
     const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true); // New state for desktop sidebar
   const { toast } = useToast();
   
-  // Fetch data sources
-  const { data: sources, isLoading: isLoadingSources } = useQuery<DataSource[]>({
-    queryKey: ['/api/dashboard/data-sources'],
-  });
+ // Fetch data sources using authenticated query
+  const { data: sources, isLoading: isLoadingSources } = useAuthenticatedQuery<DataSource[]>([
+    '/api/dashboard/data-sources'
+  ]);
 
    const toggleDesktopSidebar = () => {
     setIsDesktopSidebarOpen(!isDesktopSidebarOpen);

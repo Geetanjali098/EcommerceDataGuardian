@@ -63,10 +63,9 @@ export class MemStorage implements IStorage {
   private currentAnomalyId: number;
   private currentQualityTrendDataId: number;
 
-
-  
   // Add currentUser property to track authenticated user
   private currentUser: User | null = null;
+   private initialized: boolean = false;
 
   constructor() {
     this.users = new Map();
@@ -117,7 +116,6 @@ public async getUserByRefreshToken(token: string): Promise<User | undefined> {
     return this.currentUser?.role ?? null;
   }
 
-  // Initialize with seed data
   // Add methods to manage current user
   async setCurrentUser(user: User | null): Promise<void> {
     this.currentUser= user;
@@ -254,147 +252,48 @@ public async getUserByRefreshToken(token: string): Promise<User | undefined> {
   }
   
   // Initialize with seed data
-  async initializeWithSeedData(): Promise<void> {
-    // Add users
-   const adminUser = await this.createUser({
-      username: "admin",
-      password: "admin123", // In a real app, this would be hashed
-      role: "admin",
-      name: "Admin User",
-      email: "admin@example.com",
-      avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-    });
-    
-    await this.createUser({
-      username: "analyst",
-      password: "analyst123", // In a real app, this would be hashed
-      role: "analyst",
-      name: "Data Analyst",
-      email: "analyst@example.com",
-      avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-    });
-     
-    
-    // Set admin as initial current user
-    await this.setCurrentUser(adminUser);
-  
+  async initializeWithSeedData() {
+    if (this.initialized) return;
 
-    // Add quality metrics
-    await this.createQualityMetrics({
-      date: new Date(),
-      overallScore: 87,
-      dataFreshness: 92,
-      dataCompleteness: 83,
-      dataAccuracy: 89,
-      trendChange: 3.2,
-      freshnessChange: 1.8,
-      completenessChange: -2.1,
-      accuracyChange: 0.7
-    });
-    
-    // Add data pipelines
-    const pipelineNames = ["Product Catalog", "Order Processing", "Customer Data", "Inventory Management", "Sales Analysis"];
-    const statuses: ("running" | "completed" | "failed" | "warning")[] = ["running", "running", "warning", "failed", "completed"];
-    const times = [10, 25, 60, 180, 300]; // minutes ago
-    const recordCounts = [254129, 42568, 315782, 98421, 145782];
-    const healthScores = [95, 92, 76, 45, 88];
-    
-    for (let i = 0; i < pipelineNames.length; i++) {
-      const lastRunDate = new Date();
-      lastRunDate.setMinutes(lastRunDate.getMinutes() - times[i]);
-      
-      await this.createDataPipeline({
-        name: pipelineNames[i],
-        lastRun: lastRunDate,
-        status: statuses[i],
-        recordCount: recordCounts[i],
-        healthScore: healthScores[i]
-      });
-    }
-    
-    // Add data issues
-    const issueTypes: ("missing_values" | "duplicates" | "format_issues" | "inconsistencies" | "other")[] = [
-      "missing_values", "duplicates", "format_issues", "inconsistencies", "other"
-    ];
-    const issueCounts = [456, 285, 198, 132, 87];
-    const issueColors = ["#EF4444", "#F59E0B", "#3B82F6", "#8B5CF6", "#10B981"];
-    
-    for (let i = 0; i < issueTypes.length; i++) {
-      await this.createDataIssue({
-        type: issueTypes[i],
-        count: issueCounts[i],
-        color: issueColors[i]
-      });
-    }
-    
-    // Add data sources
-    const sourceNames = ["Product Database", "Order Processing", "Customer Profiles", "Inventory Management", "Marketing Analytics"];
-    const qualityScores = [92, 88, 76, 64, 45];
-    
-    for (let i = 0; i < sourceNames.length; i++) {
-      await this.createDataSource({
-        name: sourceNames[i],
-        qualityScore: qualityScores[i]
-      });
-    }
-    
-    // Add anomalies
-    const anomalyData = [
-      {
-        title: "Inventory Data Spike",
-        description: "Detected 1,270% increase in out-of-stock items within 2 hours",
-        severity: "critical" as const,
-        hoursAgo: 3
-      },
-      {
-        title: "Customer Data Integrity",
-        description: "245 duplicate customer records detected after latest import",
-        severity: "warning" as const,
-        hoursAgo: 5
-      },
-      {
-        title: "Price Data Inconsistency",
-        description: "68 products with mismatched prices between catalog and checkout",
-        severity: "warning" as const,
-        hoursAgo: 24
-      },
-      {
-        title: "Shipping Data Latency",
-        description: "15% increase in shipping data processing time",
-        severity: "info" as const,
-        hoursAgo: 36
-      }
-    ];
-    
-    for (const anomalyItem of anomalyData) {
-      const timestamp = new Date();
-      timestamp.setHours(timestamp.getHours() - anomalyItem.hoursAgo);
-      
-      await this.createAnomaly({
-        title: anomalyItem.title,
-        description: anomalyItem.description,
-        timestamp,
-        severity: anomalyItem.severity,
-        isNew: anomalyItem.hoursAgo < 24 // New if less than 24 hours ago
-      });
-    }
-    
-    // Add quality trend data
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const overallQuality = [82, 79, 78, 81, 84, 82, 80, 83, 85, 86, 85, 87];
-    const completeness = [75, 72, 74, 76, 79, 78, 76, 80, 82, 81, 82, 83];
-    const accuracy = [85, 84, 81, 83, 86, 85, 83, 86, 88, 89, 87, 89];
-    
-    for (let i = 0; i < months.length; i++) {
-      await this.createQualityTrendDataPoint({
-        month: months[i],
-        overallQuality: overallQuality[i],
-        completeness: completeness[i],
-        accuracy: accuracy[i]
-      });
-    }
+     console.log("Initializing storage with seed data...");
+
+    // Add users
+   const seedUser =[
+    {
+      username: "geetanjali",
+      password: "Admin@123", // In a real app, this would be hashed
+      role: "admin",
+      name: "Geetanjali Nishad",
+      email: "nishadgeetanjali84@gmail.com",
+      avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+    },
+ {
+      username: "gitu",
+      password: "Gitu@Data123", // In a real app, this would be hashed
+      role: "analyst",
+      name: "Gitu Nishad",
+      email: "gitunishad38@gmail.com",
+      avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+    },
+  ] as const;
+ 
+  // Use the correct variable name here:
+for (const user of seedUser) {
+  const existingUser = await this.getUserByUsername(user.username);
+  if (!existingUser) {
+    console.log(`Creating seed user: ${user.username}`);
+    await this.createUser(user);
+  } else {
+    console.log(`Seed user already exists: ${user.username}`);
+  }
+}
+
+    console.log("✅ Storage initialization complete");
+    this.initialized = true;
   }
 }
 export const saveRefreshToken = (userId: number, token: string) => storage.saveRefreshToken(userId, token);
 export const getUserByRefreshToken = (token: string) => storage.getUserByRefreshToken(token);
 export const storage = new MemStorage();
+
+   

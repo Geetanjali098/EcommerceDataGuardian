@@ -2,6 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet';
 import { Navbar } from '@/components/layout/navbar';
+import { useAuthenticatedQuery } from '@/hooks/use-authenticated-queries';
 import { Sidebar } from '@/components/layout/sidebar';
 import { MobileSidebar } from '@/components/layout/mobile-sidebar';
 import { 
@@ -31,30 +32,69 @@ export default function Reports() {
   const [timeRange, setTimeRange] = React.useState('month');
   const { toast } = useToast();
   
-  // Fetch report data
-  const { data: qualityMetrics, isLoading: isLoadingMetrics } = useQuery<QualityMetric>({
-    queryKey: ['/api/dashboard/quality-metrics'],
-  });
+   // Fetch report data using authenticated queries
+  const { data: qualityMetrics, isLoading: isLoadingMetrics } = useAuthenticatedQuery<QualityMetric>([
+    '/api/dashboard/quality-metrics'
+  ]);
   
-  const { data: issues, isLoading: isLoadingIssues } = useQuery<DataIssue[]>({
-    queryKey: ['/api/dashboard/data-issues'],
-  });
+  const { data: issues, isLoading: isLoadingIssues } = useAuthenticatedQuery<DataIssue[]>([
+    '/api/dashboard/data-issues'
+  ]);
   
-  const { data: sources, isLoading: isLoadingSources } = useQuery<DataSource[]>({
-    queryKey: ['/api/dashboard/data-sources'],
-  });
+  const { data: sources, isLoading: isLoadingSources } = useAuthenticatedQuery<DataSource[]>([
+    '/api/dashboard/data-sources'
+  ]);
   
-  const { data: trendData, isLoading: isLoadingTrendData } = useQuery<QualityTrendDataPoint[]>({
-    queryKey: ['/api/dashboard/quality-trend'],
-  });
+  const { data: trendData, isLoading: isLoadingTrendData } = useAuthenticatedQuery<QualityTrendDataPoint[]>([
+    '/api/dashboard/quality-trend'
+  ]);
   
-  const handleExportReport = () => {
-    toast({
-      title: 'Exporting Report',
-      description: 'Preparing your data quality report...',
-    });
-    
-    downloadCSV('/api/export/report', 'data-quality-report.csv');
+  const handleExportReport = async () => {
+    try {
+      toast({
+        title: 'Exporting Report',
+        description: 'Preparing your data quality report...',
+      });
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch('/api/export/report', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to export report');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'data-quality-report.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: 'Export Complete',
+        description: 'Report downloaded successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Export Failed',
+        description: error.message || 'Failed to export report',
+        variant: 'destructive',
+      });
+    }
   };
   
   const handleTimeRangeChange = (value: string) => {

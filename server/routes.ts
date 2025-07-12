@@ -16,9 +16,6 @@ import { login, signup } from "../server/controller/auth.controller";
 
 const router = express.Router();
 
-router.post('/sign-up', signup);
-
-router.post('/login',   login);
 
 export async function registerRoutes(app: Express): Promise<Server> {
     // Validate JWT_SECRET is available
@@ -33,10 +30,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     throw new Error("Storage initialization failed");
   }
 
+   // Use the auth controller routes
+  app.post('/api/auth/signup', signup);
+  app.post('/api/auth/login', login);
  
   
   // 🔐 JWT Login Route
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/login-backup", async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {

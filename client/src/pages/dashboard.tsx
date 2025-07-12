@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/hooks/use-auth';
+import { useAuthenticatedQuery } from '@/hooks/use-authenticated-queries';
 import { downloadCSV } from '@/lib/utils';
 import { Navbar } from '@/components/layout/navbar';
 import { Sidebar } from '@/components/layout/sidebar';
@@ -47,8 +48,6 @@ export default function Dashboard() {
   if (!isAuthenticated || !user) {
     return null;
   }
-   
-
 
   // Show loading while checking authentication
   if (isLoading) {
@@ -79,30 +78,37 @@ export default function Dashboard() {
     return null;
   }
   
-  // Fetch dashboard data
-  const { data: qualityMetrics, isLoading: isLoadingMetrics } = useQuery<QualityMetric>({
-    queryKey: ['/api/dashboard/quality-metrics'],
-  });
-  
-  const { data: pipelines, isLoading: isLoadingPipelines } = useQuery<DataPipeline[]>({
-    queryKey: ['/api/dashboard/data-pipelines'],
-  });
-  
-  const { data: issues, isLoading: isLoadingIssues } = useQuery<DataIssue[]>({
-    queryKey: ['/api/dashboard/data-issues'],
-  });
-  
-  const { data: sources, isLoading: isLoadingSources } = useQuery<DataSource[]>({
-    queryKey: ['/api/dashboard/data-sources'],
-  });
-  
-  const { data: anomalies, isLoading: isLoadingAnomalies } = useQuery<Anomaly[]>({
-    queryKey: ['/api/dashboard/anomalies', { limit: 4 }],
-  });
-  
-  const { data: trendData, isLoading: isLoadingTrendData } = useQuery<QualityTrendDataPoint[]>({
-    queryKey: ['/api/dashboard/quality-trend'],
-  });
+  // Fetch dashboard data using authenticated queries
+ // Matches: /api/dashboard/quality-scores
+const { data: qualityMetrics, isLoading: isLoadingMetrics } = useAuthenticatedQuery<QualityMetric>([
+  '/api/dashboard/quality-scores'
+]);
+
+//  Matches: /api/dashboard/pipeline-status
+const { data: pipelines, isLoading: isLoadingPipelines } = useAuthenticatedQuery<DataPipeline[]>([
+  '/api/dashboard/pipeline-status'
+]);
+
+//  Matches: /api/dashboard/data-issues
+const { data: issues, isLoading: isLoadingIssues } = useAuthenticatedQuery<DataIssue[]>([
+  '/api/dashboard/data-issues'
+]);
+
+//  Matches: /api/dashboard/data-quality-by-source
+const { data: sources, isLoading: isLoadingSources } = useAuthenticatedQuery<DataSource[]>([
+  '/api/dashboard/data-quality-by-source'
+]);
+
+//  Matches: /api/dashboard/recent-anomalies
+const { data: anomalies, isLoading: isLoadingAnomalies } = useAuthenticatedQuery<Anomaly[]>([
+  '/api/dashboard/recent-anomalies'
+]);
+
+// Matches: /api/dashboard/quality-trends
+const { data: trendData, isLoading: isLoadingTrendData } = useAuthenticatedQuery<QualityTrendDataPoint[]>([
+  '/api/dashboard/quality-trends'
+]);
+
   
   const handleRefreshPipelines = () => {
     queryClient.invalidateQueries({ queryKey: ['/api/dashboard/data-pipelines'] });
@@ -112,13 +118,52 @@ export default function Dashboard() {
     });
   };
   
-  const handleExportReport = () => {
-    toast({
-      title: 'Exporting Report',
-      description: 'Preparing your data quality report...',
-    });
-    
-    downloadCSV('/api/export/report', 'data-quality-report.csv');
+  const handleExportReport = async () => {
+    try {
+      toast({
+        title: 'Exporting Report',
+        description: 'Preparing your data quality report...',
+      });
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch('/api/export/report', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to export report');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'data-quality-report.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: 'Export Complete',
+        description: 'Report downloaded successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Export Failed',
+        description: error.message || 'Failed to export report',
+        variant: 'destructive',
+      });
+    }
   };
   
   const handleTimeRangeChange = (value: string) => {

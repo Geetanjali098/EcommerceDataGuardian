@@ -9,15 +9,16 @@ import { CheckCircle, TrendingUp, TrendingDown, BarChartBig, AlertTriangle } fro
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn, getChangeColor } from '@/lib/utils';
+import { useAuthenticatedQuery } from '@/hooks/use-authenticated-queries';
 
 export default function CompletenessReport() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = React.useState(true); // New state for desktop sidebar
   
-  // Fetch metrics
-  const { data: qualityMetrics, isLoading: isLoadingMetrics } = useQuery<QualityMetric>({
-    queryKey: ['/api/dashboard/quality-metrics'],
-  });
+   // Fetch metrics using authenticated queries
+    const { data: qualityMetrics, isLoading: isLoadingMetrics } = useAuthenticatedQuery<QualityMetric>([
+      '/api/dashboard/quality-metrics'
+    ]);
 
    const toggleDesktopSidebar = () => {
     setIsDesktopSidebarOpen(!isDesktopSidebarOpen);

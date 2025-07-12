@@ -21,8 +21,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
-import { getAuth, signInWithPopup, GoogleAuthProvider,} from 'firebase/auth';
-import app  from '@/lib/firebase'; // Ensure you have firebase initialized
 import { Link } from 'react-router-dom';
 
 const signupSchema = z.object({
@@ -38,7 +36,6 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 export default function Signup() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [googleLoading, setGoogleLoading] = React.useState(false);
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -51,45 +48,7 @@ export default function Signup() {
     },
   });
   
- const handleGoogleSignIn = async () => {
-  setGoogleLoading(true);
-  const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: "select_account" });
 
-  try {
-    const result = await signInWithPopup(getAuth(app), provider);
-    const firebaseToken = await result.user.getIdToken(true); // 🔐
-
-    const response = await apiRequest("POST", "/api/auth/google", {
-      token: firebaseToken,
-      role: form.getValues().role, // Send selected role to backend
-    });
-
-    if (response.ok) {
-      toast({
-        title: "Signup successful",
-        description: "You can now sign in with your credentials.",
-      });
-      navigate("/dashboard");
-    } else {
-      const data = await response.json();
-      toast({
-        title: "Google signup failed",
-        description: data.message || "Something went wrong",
-        variant: "destructive",
-      });
-    }
-  } catch (error: any) {
-    console.error("Google signup error:", error);
-    toast({
-      title: "Error",
-      description: error.message || "Google sign-in failed.",
-      variant: "destructive",
-    });
-  } finally {
-    setGoogleLoading(false);
-  }
-};
  // Function to handle form submission
   // This function will be called when the form is submitted
   const onSubmit = async (values: SignupFormValues) => {
@@ -249,23 +208,7 @@ export default function Signup() {
                     </Button>
                   </form>
                 </Form>
-                       OR
-               {/* Google Sign-In Button */}
-                <Button
-                  onClick={handleGoogleSignIn}
-                   disabled={googleLoading}
-                  className="w-full mt-4 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
-                  variant="outline"
-                >
-                  {googleLoading ? (
-                         "Signing in..."
-                      ) : (
-                             <>
-                  <img src="https://img.icons8.com/color/16/google-logo.png" alt="Google" className="mr-2" />
-                  Sign up with Google based on your work role
-                    </>
-                )}
-                </Button>
+            
               </CardContent>
               <CardFooter className="text-center text-sm text-muted-foreground">
                Already have an account?

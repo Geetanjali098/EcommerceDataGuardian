@@ -3,27 +3,28 @@ import { Helmet } from 'react-helmet';
 import { Navbar } from '@/components/layout/navbar';
 import { Sidebar } from '@/components/layout/sidebar';
 import { MobileSidebar } from '@/components/layout/mobile-sidebar';
-import { useQuery } from '@tanstack/react-query';
 import { QualityMetric, QualityTrendDataPoint } from '@/types';
 import { BarChartBig, TrendingUp, Clock, AlertTriangle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Chart } from '@/components/ui/chart';
 import { Button } from '@/components/ui/button';
 import { cn, getChangeColor } from '@/lib/utils';
+import { useAuthenticatedQuery } from '@/hooks/use-authenticated-queries';
 
 export default function OverallQualityReport() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = React.useState(true);
   
-  // Fetch metrics
-  const { data: qualityMetrics, isLoading: isLoadingMetrics } = useQuery<QualityMetric>({
-    queryKey: ['/api/dashboard/quality-metrics'],
-  });
+ 
+   // Fetch metrics using authenticated queries
+  const { data: qualityMetrics, isLoading: isLoadingMetrics } = useAuthenticatedQuery<QualityMetric>([
+    '/api/dashboard/quality-metrics'
+  ]);
   
-  // Fetch trend data
-  const { data: trendData, isLoading: isLoadingTrendData } = useQuery<QualityTrendDataPoint[]>({
-    queryKey: ['/api/dashboard/quality-trend'],
-  });
+  // Fetch trend data using authenticated query
+  const { data: trendData, isLoading: isLoadingTrendData } = useAuthenticatedQuery<QualityTrendDataPoint[]>([
+    '/api/dashboard/quality-trend'
+  ]);
   
   // Prepare chart data
   const chartData = React.useMemo(() => {

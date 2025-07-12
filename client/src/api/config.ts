@@ -40,16 +40,21 @@ export const getQueryFn = <T>(options: {
     const url = queryKey[0] as string;
     const token = localStorage.getItem("token");
 
-    const res = await fetch("http://localhost:5000/api/auth/me", {
-  method: "GET",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  },
-});
+      const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      credentials: "include",
+    });
     const fetchOptions: RequestInit = {
       method: "GET",
       credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       ...(signal ? { signal } : {}),
     };
 
