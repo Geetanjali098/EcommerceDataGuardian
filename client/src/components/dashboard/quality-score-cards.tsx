@@ -13,11 +13,11 @@ interface QualityScoreCardsProps {
   isLoading?: boolean;
 }
 
-export function QualityScoreCards({ metrics, isLoading = false }: QualityScoreCardsProps) {
+export function QualityScoreCards({metrics, isLoading = false }: QualityScoreCardsProps) {
   const scoreCards = [
     {
       title: 'Overall Quality Score',
-      score: metrics?.overallScore,
+      score:metrics?.overallScore,
       change: metrics?.trendChange,
       icon: <BarChartBig className="text-primary" />,
       bgColor: 'bg-blue-100 dark:bg-blue-900',
@@ -26,14 +26,14 @@ export function QualityScoreCards({ metrics, isLoading = false }: QualityScoreCa
     {
       title: 'Data Freshness',
       score: metrics?.dataFreshness,
-      change: metrics?.freshnessChange,
+      change:metrics ?.freshnessChange,
       icon: <Clock className="text-success" />,
       bgColor: 'bg-green-100 dark:bg-green-900',
       href: '/quality/freshness'
     },
     {
       title: 'Data Completeness',
-      score: metrics?.dataCompleteness,
+      score:metrics?.dataCompleteness,
       change: metrics?.completenessChange,
       icon: <CheckCircle className="text-warning" />,
       bgColor: 'bg-yellow-100 dark:bg-yellow-900',
@@ -41,8 +41,8 @@ export function QualityScoreCards({ metrics, isLoading = false }: QualityScoreCa
     },
     {
       title: 'Data Accuracy',
-      score: metrics?.dataAccuracy,
-      change: metrics?.accuracyChange,
+      score:metrics?.dataAccuracy,
+      change:metrics?.accuracyChange,
       icon: <Target className="text-secondary" />,
       bgColor: 'bg-purple-100 dark:bg-purple-900',
       href: '/quality/accuracy'

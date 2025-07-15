@@ -20,6 +20,9 @@ export default function AccuracyReport() {
       '/api/dashboard/quality-metrics'
     ]);
 
+     console.log('Accuracy Quality Report - isLoadingMetrics:', isLoadingMetrics);
+      console.log('Accuracy Quality Report - qualityMetrics:', qualityMetrics);
+
    const toggleDesktopSidebar = () => {
     setIsDesktopSidebarOpen(!isDesktopSidebarOpen);
   };

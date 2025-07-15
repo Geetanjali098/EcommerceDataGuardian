@@ -41,7 +41,7 @@ export const isAuthenticated = (
  // /me route
 const router = express.Router();
 
-router.get("/me", isAuthenticated, (req, res) => {
+router.get("/me", isAuthenticated, (req: AuthenticatedRequest, res: Response) => {
   res.json({ user: req.user });
 });
 

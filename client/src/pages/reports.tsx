@@ -6,7 +6,7 @@ import { useAuthenticatedQuery } from '@/hooks/use-authenticated-queries';
 import { Sidebar } from '@/components/layout/sidebar';
 import { MobileSidebar } from '@/components/layout/mobile-sidebar';
 import { 
-  QualityMetric, DataIssue, DataSource, QualityTrendDataPoint 
+  QualityMetric, DataIssue, DataSource, QualityTrendDataPoint, Anomaly
 } from '@/types';
 import { 
   Card, CardContent, CardHeader, CardTitle, 
@@ -31,23 +31,58 @@ export default function Reports() {
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = React.useState(true); // New state for desktop sidebar
   const [timeRange, setTimeRange] = React.useState('month');
   const { toast } = useToast();
+
+  type Report = {
+  reportName: string;
+  generatedAt: string;
+  status: string;
+  url: string | null;
+};
+
   
    // Fetch report data using authenticated queries
   const { data: qualityMetrics, isLoading: isLoadingMetrics } = useAuthenticatedQuery<QualityMetric>([
     '/api/dashboard/quality-metrics'
   ]);
+
+  console.log('Reports - isLoadingMetrics:', isLoadingMetrics);
+  console.log('Reports - qualityMetrics:', qualityMetrics);
+
   
   const { data: issues, isLoading: isLoadingIssues } = useAuthenticatedQuery<DataIssue[]>([
     '/api/dashboard/data-issues'
   ]);
+
+  console.log('Reports - isLoadingIssues:', isLoadingIssues);
+  console.log('Reports - issues:', issues);
   
   const { data: sources, isLoading: isLoadingSources } = useAuthenticatedQuery<DataSource[]>([
-    '/api/dashboard/data-sources'
+    '/api/dashboard/data-quality-by-source'
   ]);
+
+  console.log('Reports - isLoadingSources:', isLoadingSources);
+  console.log('Reports - sources:', sources);
   
   const { data: trendData, isLoading: isLoadingTrendData } = useAuthenticatedQuery<QualityTrendDataPoint[]>([
-    '/api/dashboard/quality-trend'
+    '/api/dashboard/quality-trends'
   ]);
+  console.log('Reports - isLoadingTrendData:', isLoadingTrendData);
+  console.log('Reports - trendData:', trendData);
+
+  const { data: anomalies, isLoading: isLoadingAnomalies } = useAuthenticatedQuery<Anomaly[]>([
+    '/api/dashboard/recent-anomalies'
+  ]);
+    console.log('Report - isLoadingAnomalies:', isLoadingAnomalies);
+    console.log('Report - anomalies:', anomalies);
+
+  // /api/dashboard/reports
+const { data: reports, isLoading: isLoadingReports } = useAuthenticatedQuery<Report[]>([
+  "/api/dashboard/reports"
+]);
+
+console.log("Dashboard - isLoadingReports:", isLoadingReports);
+console.log("Dashboard - reports:", reports);
+
   
   const handleExportReport = async () => {
     try {
@@ -377,6 +412,55 @@ export default function Reports() {
                     </div>
                   )}
                 </CardContent>
+
+                   <Card className="bg-white dark:bg-dark-light shadow mb-6 mt-6">
+                         <CardHeader>
+                          <CardTitle className="flex items-center">
+                            <Download className="mr-2 h-5 w-5 text-primary" />
+                                    Recent Reports
+                                    </CardTitle>
+                                     </CardHeader>
+                                        <CardContent>
+                                       {isLoadingReports ? (
+                          <p className="text-sm text-gray-500">Loading reports...</p>
+                                           ) : (
+                     <table className="w-full text-sm text-left mt-2 border rounded-lg overflow-hidden">
+                         <thead className="bg-gray-100 dark:bg-gray-800">
+                                       <tr>
+                                <th className="p-2">Report Name</th>
+                              <th className="p-2">Status</th>
+                               <th className="p-2">Generated</th>
+                          <th className="p-2">Download</th>
+                                 </tr>
+                                </thead>
+                                    <tbody>
+          {reports?.map((report, index) => (
+            <tr key={index} className="border-t dark:border-gray-700">
+              <td className="p-2">{report.reportName}</td>
+              <td className="p-2">{report.status}</td>
+              <td className="p-2">
+                {new Date(report.generatedAt).toLocaleString()}
+              </td>
+              <td className="p-2">
+                {report.url ? (
+                  <a
+                    href={report.url}
+                    className="text-blue-600 dark:text-blue-300 underline"
+                    download
+                  >
+                    Download
+                  </a>
+                ) : (
+                  <span className="text-gray-400">Processing...</span>
+                                 )}
+                                    </td>
+                                  </tr>
+                                   ))}
+                                  </tbody>
+                               </table>
+                                    )}
+                                     </CardContent>
+                                    </Card>
                 <CardFooter className="border-t border-gray-200 dark:border-gray-700 px-6 py-3">
                   <div className="text-sm text-gray-500 dark:text-gray-400">
                     Quality scores by data source

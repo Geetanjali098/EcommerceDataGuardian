@@ -90,6 +90,10 @@ export default function Alerts() {
   // Fetch recent anomalies for the alert history
   const { data: anomalies, isLoading: isLoadingAnomalies } = useAuthenticatedQuery<Anomaly[]>
   (['/api/dashboard/anomalies']);
+  
+  // Log the loading state and anomalies data for debugging
+  console.log('Alerts Page - isLoadingAnomalies:', isLoadingAnomalies);
+  console.log('Alerts Page - anomalies:', anomalies);
  
 
   const handleToggleAlert = (id: number) => {

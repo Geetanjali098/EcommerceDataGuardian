@@ -20,6 +20,10 @@ export default function CompletenessReport() {
       '/api/dashboard/quality-metrics'
     ]);
 
+    
+     console.log(' Completeness Quality Report - isLoadingMetrics:', isLoadingMetrics);
+      console.log(' Completeness Quality Report - qualityMetrics:', qualityMetrics);
+
    const toggleDesktopSidebar = () => {
     setIsDesktopSidebarOpen(!isDesktopSidebarOpen);
   };

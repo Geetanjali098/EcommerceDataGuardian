@@ -15,11 +15,12 @@ import { RecentAnomalies } from '@/components/dashboard/recent-anomalies';
 import { DataQualityBySource } from '@/components/dashboard/data-quality-by-source';
 import { ScrollableStats } from '@/components/dashboard/scrollable-stats';
 import { ScrollableInsights } from '@/components/dashboard/scrollable-insights';
-import { QualityMetric, DataPipeline, DataIssue, DataSource, Anomaly, QualityTrendDataPoint } from '@/types';
+import { QualityMetric, DataPipeline, DataIssue, DataSource, Anomaly, QualityTrendDataPoint, } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { DownloadIcon } from 'lucide-react';
+import { insertQualityMetricsSchema } from '../../../shared/schema';
 
 
 
@@ -34,6 +35,13 @@ export default function Dashboard() {
   const DesktopSidebar = () => {
     setIsDesktopSidebarOpen(!isDesktopSidebarOpen);
   };
+
+  type Insight = {
+  title: string;
+  message: string;
+  timeAgo: string;
+  type: string;
+};
  
   // Show loading while checking authentication
   if (isLoading) {
@@ -79,36 +87,59 @@ export default function Dashboard() {
   }
   
   // Fetch dashboard data using authenticated queries
+    
+ 
  // Matches: /api/dashboard/quality-scores
-const { data: qualityMetrics, isLoading: isLoadingMetrics } = useAuthenticatedQuery<QualityMetric>([
-  '/api/dashboard/quality-scores'
+const { data: qualityMetrics, isLoading: isLoadingMetrics }= useAuthenticatedQuery<QualityMetric>([
+  '/api/dashboard/quality-metrics' 
 ]);
+  console.log('Dashboard - isLoadingMetrics:', isLoadingMetrics);
+  console.log('Dashboard - qualityMetrics:', qualityMetrics);
 
 //  Matches: /api/dashboard/pipeline-status
 const { data: pipelines, isLoading: isLoadingPipelines } = useAuthenticatedQuery<DataPipeline[]>([
   '/api/dashboard/pipeline-status'
 ]);
+  console.log('Dashboard - isLoadingPipelines:', isLoadingPipelines);
+  console.log('Dashboard - pipelines:', pipelines);
 
 //  Matches: /api/dashboard/data-issues
 const { data: issues, isLoading: isLoadingIssues } = useAuthenticatedQuery<DataIssue[]>([
   '/api/dashboard/data-issues'
 ]);
+  console.log('Dashboard - isLoadingIssues:', isLoadingIssues);
+  console.log('Dashboard - issues:', issues);
 
 //  Matches: /api/dashboard/data-quality-by-source
 const { data: sources, isLoading: isLoadingSources } = useAuthenticatedQuery<DataSource[]>([
   '/api/dashboard/data-quality-by-source'
 ]);
+  console.log('Dashboard - isLoadingSources:', isLoadingSources);
+  console.log('Dashboard - sources:', sources);
 
 //  Matches: /api/dashboard/recent-anomalies
 const { data: anomalies, isLoading: isLoadingAnomalies } = useAuthenticatedQuery<Anomaly[]>([
   '/api/dashboard/recent-anomalies'
 ]);
+  console.log('Dashboard - isLoadingAnomalies:', isLoadingAnomalies);
+  console.log('Dashboard - anomalies:', anomalies);
 
 // Matches: /api/dashboard/quality-trends
 const { data: trendData, isLoading: isLoadingTrendData } = useAuthenticatedQuery<QualityTrendDataPoint[]>([
   '/api/dashboard/quality-trends'
 ]);
+  console.log('Dashboard - isLoadingTrendData:', isLoadingTrendData);
+  console.log('Dashboard - trendData:', trendData);
 
+  // /api/dashboard/insights
+const { data: insights, isLoading: isLoadingInsights } = useAuthenticatedQuery<Insight[]>([
+  "/api/dashboard/insights"
+]);
+
+// /api/dashboard/reports
+const { data: reports, isLoading: isLoadingReports } = useAuthenticatedQuery<Report[]>([
+  "/api/dashboard/reports"
+]);
   
   const handleRefreshPipelines = () => {
     queryClient.invalidateQueries({ queryKey: ['/api/dashboard/data-pipelines'] });
@@ -178,7 +209,7 @@ const { data: trendData, isLoading: isLoadingTrendData } = useAuthenticatedQuery
    const toggleDesktopSidebar = () => {
     setIsDesktopSidebarOpen(!isDesktopSidebarOpen);
   };
-  
+
   return (
     <>
       <Helmet>
@@ -247,7 +278,7 @@ const { data: trendData, isLoading: isLoadingTrendData } = useAuthenticatedQuery
             
             {/* Horizontal Scrollable Insights */}
             <div className="mb-6 relative px-4 -mx-4 sm:-mx-6 lg:-mx-8">
-              <ScrollableInsights />
+              <ScrollableInsights insights={insights || []} isLoading={isLoadingInsights} />
             </div>
             
             {/* Dashboard Content */}
@@ -256,7 +287,7 @@ const { data: trendData, isLoading: isLoadingTrendData } = useAuthenticatedQuery
               <div className="lg:col-span-2 space-y-6">
                 {/* Quality Trend Chart */}
                 <QualityTrendChart 
-                  trendData={trendData || []} 
+                  data={trendData || []} 
                   isLoading={isLoadingTrendData} 
                 />
                 
@@ -286,7 +317,7 @@ const { data: trendData, isLoading: isLoadingTrendData } = useAuthenticatedQuery
                 <DataQualityBySource 
                   sources={sources || []} 
                   isLoading={isLoadingSources} 
-                />
+                />               
               </div>
             </div>
           </main>

@@ -32,6 +32,10 @@ export default function DataPipelines() {
   // Fetch data pipelines
   const { data: pipelines, isLoading: isLoadingPipelines } = useAuthenticatedQuery<DataPipeline[]>
     (['/api/dashboard/data-pipelines']);
+    
+  // Log the loading state and pipelines data for debugging
+  console.log('Data Pipelines - isLoadingPipelines:', isLoadingPipelines);
+  console.log('Data Pipelines - pipelines:', pipelines);
   
   
   const handleRefreshPipelines = () => {

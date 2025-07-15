@@ -20,11 +20,16 @@ export default function OverallQualityReport() {
   const { data: qualityMetrics, isLoading: isLoadingMetrics } = useAuthenticatedQuery<QualityMetric>([
     '/api/dashboard/quality-metrics'
   ]);
+  console.log('Overall Quality Report - isLoadingMetrics:', isLoadingMetrics);
+  console.log('Overall Quality Report - qualityMetrics:', qualityMetrics);
   
   // Fetch trend data using authenticated query
   const { data: trendData, isLoading: isLoadingTrendData } = useAuthenticatedQuery<QualityTrendDataPoint[]>([
     '/api/dashboard/quality-trend'
   ]);
+
+  console.log('Overall Quality Report - isLoadingTrendData:', isLoadingTrendData);
+  console.log('Overall Quality Report - trendData:', trendData);
   
   // Prepare chart data
   const chartData = React.useMemo(() => {

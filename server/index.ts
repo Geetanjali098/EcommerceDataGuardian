@@ -6,13 +6,28 @@ import { errorHandler } from "./middleware/errorHandler";
 import admin from "firebase-admin";
 import dotenv from "dotenv";
 import mongoose from 'mongoose';
-import bcrypt from "bcryptjs";
+import { DataSource } from "./models/DataSource";
+import { DataIssue } from "./models/DataIssue";
+import { Pipeline } from "./models/Pipeline";
+import { TrendPoint } from "./models/TrendPoint";
+import { Anomaly } from "./models/Anomaly";
+import { QualityMetric } from "./models/QualityMetric";
+import { Insight } from "./models/Insight";
+import { Report } from "./models/Report";
+
+// Middleware
+import { isAuthenticated } from "./middleware/auth";
 
 // Load environment variables from .env file
 dotenv.config();
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI!)
+
+mongoose
+  .connect(process.env.MONGO_URI!, {
+    dbName: "data_quality"
+  })
+
   .then(() => console.log("✅ MongoDB connected successfully"))
   .catch((err) => console.error("❌ MongoDB connection failed", err));
 
@@ -102,6 +117,96 @@ app.use((req, res, next) => {
     res.status(status).json({ message });
     throw err;
   });
+//Add routes for the dashboard API
+
+  // Data Sources
+app.get("/api/dashboard/data-quality-by-source", isAuthenticated, async (req, res) => {
+  try {
+    const sources = await DataSource.find({});
+    res.json(sources);
+  } catch (err) {
+    console.error("Error fetching data sources:", err);
+    res.status(500).json({ message: "Failed to fetch sources" });
+  }
+});
+
+//  Data Issues
+app.get("/api/dashboard/data-issues", isAuthenticated, async (req, res) => {
+  try {
+    const issues = await DataIssue.find({});
+    res.json(issues);
+  } catch (err) {
+    console.error("Error fetching data issues:", err);
+    res.status(500).json({ message: "Failed to fetch issues" });
+  }
+});
+
+// Pipeline Status
+app.get("/api/dashboard/pipeline-status", isAuthenticated, async (req, res) => {
+  try {
+    const pipelines = await Pipeline.find({});
+    res.json(pipelines);
+  } catch (err) {
+    console.error("Error fetching pipelines:", err);
+    res.status(500).json({ message: "Failed to fetch pipelines" });
+  }
+});
+
+//  Quality Trends
+app.get("/api/dashboard/quality-trends", isAuthenticated, async (req, res) => {
+  try {
+    const trends = await TrendPoint.find({});
+    res.json(trends);
+  } catch (err) {
+    console.error("Error fetching trend points:", err);
+    res.status(500).json({ message: "Failed to fetch trend data" });
+  }
+});
+
+//  Recent Anomalies
+app.get("/api/dashboard/recent-anomalies", isAuthenticated, async (req, res) => {
+  try {
+    const anomalies = await Anomaly.find({});
+    res.json(anomalies);
+  } catch (err) {
+    console.error("Error fetching anomalies:", err);
+    res.status(500).json({ message: "Failed to fetch anomalies" });
+  }
+});
+
+//  Quality Metrics (Accuracy, Completeness, etc.)
+app.get("/api/dashboard/quality-metrics", isAuthenticated, async (req, res) => {
+  try {
+    const metrics = await QualityMetric.find({});
+    res.json(metrics);
+  } catch (err) {
+    console.error("Error fetching quality metrics:", err);
+    res.status(500).json({ message: "Failed to fetch metrics" });
+  }
+});
+
+// Insights
+app.get("/api/dashboard/insights", isAuthenticated, async (req, res) => {
+  try {
+    const insights = await Insight.find({});
+    res.json(insights);
+  } catch (err) {
+    console.error("Error fetching insights:", err);
+    res.status(500).json({ message: "Failed to fetch insights" });
+  }
+});
+// Reports
+app.get("/api/dashboard/reports", isAuthenticated, async (req, res) => {
+  try {
+    const reports = await Report.find({});
+    res.json(reports);
+  } catch (err) {
+    console.error("Error fetching reports:", err);
+    res.status(500).json({ message: "Failed to fetch reports" });
+  }
+});
+  // Setup Vite for development
+  // This is done after all routes are registered
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route

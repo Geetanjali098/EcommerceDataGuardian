@@ -28,6 +28,10 @@ export default function Anomalies() {
    // Fetch recent anomalies for the alert history
     const { data: anomalies, isLoading: isLoadingAnomalies } = useAuthenticatedQuery<Anomaly[]>
     (['/api/dashboard/anomalies']);
+
+  // Log the loading state and anomalies data for debugging
+  console.log('Anomalies Page - isLoadingAnomalies:', isLoadingAnomalies);
+  console.log('Anomalies Page - anomalies:', anomalies);
   
   // Filter anomalies by severity
   const filteredAnomalies = React.useMemo(() => {

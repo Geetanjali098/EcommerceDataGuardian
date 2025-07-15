@@ -61,70 +61,36 @@ const InsightCard = ({ title, description, category, timestamp, icon, color = 'b
   );
 };
 
-export function ScrollableInsights() {
-  // Sample data for the scrollable insights
-  const insightsData = [
-    { 
-      title: 'Conversion Rate Increase', 
-      description: 'Product page conversion rate has increased by 12% after recent UI updates.', 
-      category: 'Performance', 
-      timestamp: '2 hours ago', 
-      icon: <TrendingUp className="h-5 w-5" />, 
-      color: 'green' 
-    },
-    { 
-      title: 'Search Results Anomaly', 
-      description: 'Detected unusual pattern in search results for "summer collection" with high abandonment.', 
-      category: 'Anomaly', 
-      timestamp: '4 hours ago', 
-      icon: <Search className="h-5 w-5" />, 
-      color: 'red'
-    },
-    { 
-      title: 'Data Freshness Alert', 
-      description: 'Product inventory data is 4 hours behind schedule. Check data pipeline.', 
-      category: 'Alert', 
-      timestamp: '6 hours ago', 
-      icon: <AlertTriangle className="h-5 w-5" />,
-      color: 'yellow'
-    },
-    { 
-      title: 'New Trend Detected', 
-      description: 'Mobile users are showing 28% higher engagement with video content.', 
-      category: 'Trend', 
-      timestamp: '12 hours ago', 
-      icon: <Lightbulb className="h-5 w-5" />,
-      color: 'purple' 
-    },
-    { 
-      title: 'Geographical Insight', 
-      description: 'Users from West Coast spend 15% more time on product pages during evenings.', 
-      category: 'Regional', 
-      timestamp: '1 day ago', 
-      icon: <Globe className="h-5 w-5" />,
-      color: 'blue' 
-    },
-    { 
-      title: 'Weekly Report Available', 
-      description: 'Your custom weekly data quality report is now available for download.', 
-      category: 'Report', 
-      timestamp: '1 day ago', 
-      icon: <FileText className="h-5 w-5" />,
-      color: 'orange' 
-    },
-  ];
-  
+interface Props {
+  insights: Array<{
+    title: string;
+    message: string;
+    type: string;
+    timeAgo: string;
+  }>;
+  isLoading: boolean;
+}
+
+export function ScrollableInsights({ insights, isLoading }: Props) {
+  if (isLoading) {
+    return <p className="text-sm text-gray-500">Loading insights...</p>;
+  }
+
+  if (!insights || insights.length === 0) {
+    return <p className="text-sm text-gray-400">No insights available</p>;
+  }
+
   return (
     <ScrollableMetricsCards title="Featured Insights">
-      {insightsData.map((insight, index) => (
+      {insights.map((insight, index) => (
         <InsightCard
           key={index}
           title={insight.title}
-          description={insight.description}
-          category={insight.category}
-          timestamp={insight.timestamp}
-          icon={insight.icon}
-          color={insight.color}
+          description={insight.message}
+          category={insight.type}
+          timestamp={insight.timeAgo}
+          icon={<Lightbulb className="h-5 w-5" />} // You can customize icon based on type
+          color="blue"
         />
       ))}
     </ScrollableMetricsCards>

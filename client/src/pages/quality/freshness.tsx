@@ -20,6 +20,10 @@ export default function FreshnessReport() {
     '/api/dashboard/quality-metrics'
   ]);
 
+  
+     console.log(' Freshness Quality Report - isLoadingMetrics:', isLoadingMetrics);
+      console.log(' Freshness Quality Report- qualityMetrics:', qualityMetrics);
+
    const toggleDesktopSidebar = () => {
     setIsDesktopSidebarOpen(!isDesktopSidebarOpen);
   };
